@@ -46,7 +46,6 @@ public class CubeScript : MonoBehaviour {
 		isRecording = false;
 		finishedRecording = true;
 
-		//makeCurve ();
 	}
 
 	public void Update()
@@ -79,10 +78,8 @@ public class CubeScript : MonoBehaviour {
 		if (Input.GetKeyDown (play)) 
 		{
 			Debug.Log ("Replay!");
-			
 
 			isReplaying = true;
-			//finishedReading = false;
 			currentTime = Time.time;
 		}
 
@@ -91,7 +88,6 @@ public class CubeScript : MonoBehaviour {
 			WritePos (transform.position);
 		}
 		
-		//if (!finishedReading && isReplaying) 
 		if (isReplaying)
 		{
 			//ReadPos ();
