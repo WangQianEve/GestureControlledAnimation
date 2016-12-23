@@ -16,6 +16,7 @@ public class CubeScript : MonoBehaviour {
 	public KeyCode play = KeyCode.P;
 	public KeyCode MakeCurve = KeyCode.M;
 	
+	private string contextPath;
 	private string path;
 	private FileStream readfs;
 	private StreamReader read;
@@ -32,8 +33,9 @@ public class CubeScript : MonoBehaviour {
 
 	public void Start()
 	{
-		path = "D:\\Junior\\HCI\\1.txt";
-
+		contextPath = System.IO.Directory.GetCurrentDirectory();
+		path = contextPath + "\\Assets\\UserFiles\\Positions\\test.txt";
+		Debug.Log (path);
 		originX = transform.position.x;
 		originY = transform.position.y;
 		originZ = transform.position.z;
@@ -161,21 +163,26 @@ public class CubeScript : MonoBehaviour {
 
 	public void WritePos(Vector3 pos)
 	{
-		FileStream fs = null;  
+		FileStream fs = null;
 		Encoding encoder = Encoding.UTF8;  //将待写的入数据从字符串转换为字节数组  
 		byte[] bytes = encoder.GetBytes(pos.x.ToString() + " " + pos.y.ToString() + " " + pos.z.ToString() + " \r\n");  
 		try  
-		{  
-			fs = File.OpenWrite(path);  
+		{
+			if(!File.Exists(path)){
+				Debug.Log("Making new file " + path);
+				File.Create(path);
+			}
+			fs = File.OpenWrite(path);
 			fs.Position = fs.Length;  //设定书写的開始位置为文件的末尾
 			fs.Write(bytes, 0, bytes.Length);  //将待写入内容追加到文件末尾
 		}  
 		catch (Exception ex)  
 		{  
-			Console.WriteLine("文件打开失败{0}", ex.ToString());  
+			Console.WriteLine("Open File Fails {0}", ex.ToString());  
 		}  
 		finally  
 		{  
+			if(fs != null)
 			fs.Close();  
 		} 
 	}
