@@ -1,9 +1,9 @@
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2008
-
-Project("{727E25EE-7E63-8C7D-631C-8B6EAC79C0CC}") = "GestureControlledAnimation", "Assembly-CSharp.csproj", "{0A64A41F-9305-42AA-DAE4-686F5A8B674E}"
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2015
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GestureControlledAnimation", "GestureControlledAnimation.csproj", "{661A06E1-9B0A-D848-A5B2-D4BA181A0CCF}"
 EndProject
-Project("{727E25EE-7E63-8C7D-631C-8B6EAC79C0CC}") = "GestureControlledAnimation", "Assembly-CSharp-Editor.csproj", "{45DCB665-0A96-A113-8D05-757D7E4F2B55}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GestureControlledAnimation.Editor", "GestureControlledAnimation.Editor.csproj", "{092918E2-3FE5-D458-9A52-B53F83E09D23}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,19 +11,16 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{0A64A41F-9305-42AA-DAE4-686F5A8B674E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0A64A41F-9305-42AA-DAE4-686F5A8B674E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0A64A41F-9305-42AA-DAE4-686F5A8B674E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0A64A41F-9305-42AA-DAE4-686F5A8B674E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{45DCB665-0A96-A113-8D05-757D7E4F2B55}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{45DCB665-0A96-A113-8D05-757D7E4F2B55}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{45DCB665-0A96-A113-8D05-757D7E4F2B55}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{45DCB665-0A96-A113-8D05-757D7E4F2B55}.Release|Any CPU.Build.0 = Release|Any CPU
+		{661A06E1-9B0A-D848-A5B2-D4BA181A0CCF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{661A06E1-9B0A-D848-A5B2-D4BA181A0CCF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{661A06E1-9B0A-D848-A5B2-D4BA181A0CCF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{661A06E1-9B0A-D848-A5B2-D4BA181A0CCF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{092918E2-3FE5-D458-9A52-B53F83E09D23}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{092918E2-3FE5-D458-9A52-B53F83E09D23}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{092918E2-3FE5-D458-9A52-B53F83E09D23}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{092918E2-3FE5-D458-9A52-B53F83E09D23}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = Assembly-CSharp.csproj
 	EndGlobalSection
 EndGlobal

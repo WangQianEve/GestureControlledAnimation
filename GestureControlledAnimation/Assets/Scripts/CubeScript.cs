@@ -32,7 +32,7 @@ public class CubeScript : MonoBehaviour {
 
 	public void Start()
 	{
-		path = "D:\\Junior\\HCI\\1.txt";
+		path = "C:\\Users\\bingochen\\Desktop\\Junior\\HCI\\project\\GestureControlledAnimation\\1.txt";
 
 		originX = transform.position.x;
 		originY = transform.position.y;
