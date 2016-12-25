@@ -30,7 +30,7 @@ public class CubeScript : MonoBehaviour {
 	private StreamWriter writer;
 	private Encoding encoder = Encoding.UTF8;
 	private float recordFlagTime = 0;
-	private Transform recordFlagPos;
+	private Vector3 recordFlagPos;
 
 	private float currentTime = 0;
 	private float originX = 0, originY = 0, originZ = 0;
@@ -55,7 +55,6 @@ public class CubeScript : MonoBehaviour {
 
 		isRecording = false;
 		finishedRecording = true;
-
 	}
 
 	public void Update()
@@ -84,7 +83,7 @@ public class CubeScript : MonoBehaviour {
 				preRead();
 				Debug.Log ("Start Recording...");
 				recordFlagTime = Time.time;
-				recordFlagPos = transform;
+				recordFlagPos = transform.position;
 				isRecording = true;
 			}  
 			catch (Exception ex)  
@@ -126,15 +125,11 @@ public class CubeScript : MonoBehaviour {
 
 
 		if (isRecording) {
-			Transform temp = transform;
-			Debug.Log (temp.position.ToString ());
-			Debug.Log (recordFlagPos.position.ToString ());
-			Debug.Log ((Vector3.Distance (temp.position, recordFlagPos.position)).ToString ());
-			writer.WriteLine ((Time.time - recordFlagTime).ToString () + "," + temp.position.x.ToString () + "," + temp.position.y.ToString () + "," + temp.position.z.ToString () );
-			recordFlagTime = Time.time;
-			recordFlagPos = temp;
-			if (Vector3.Distance (temp.position, recordFlagPos.position) > recordPrecision) {
-				//
+			Vector3 temp = transform.position;
+			if (Vector3.Distance (temp, recordFlagPos) > recordPrecision) {
+				writer.WriteLine ((Time.time - recordFlagTime).ToString () + "," + temp.x.ToString () + "," + temp.y.ToString () + "," + temp.z.ToString () );
+				recordFlagTime = Time.time;
+				recordFlagPos = temp;
 			}
 		}
 		
