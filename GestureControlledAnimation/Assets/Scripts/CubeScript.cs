@@ -77,14 +77,10 @@ public class CubeScript : MonoBehaviour {
 					Debug.Log("Making new file " + path+"\\write.txt");
 					File.Create(path+"\\write.txt");
 				}
-				path = @"E:\a.txt";
-				readfs = new FileStream( path, FileMode.Open, FileAccess.Read);
-//				reader = new StreamReader(rpath);
-				reader = new StreamReader(readfs);
-				if(reader == null)Debug.Log("yes");
-				else Debug.Log("no");
-				Debug.Log("hey");
-				writer = new StreamWriter(path + "\\write.txt");
+				readfs = new FileStream( path+"\\read.txt", FileMode.Open, FileAccess.Read);
+				writefs = new FileStream( path+"\\write.txt", FileMode.Open, FileAccess.Write);
+				reader = new StreamReader(readfs,Encoding.Default);
+				writer = new StreamWriter(writefs,Encoding.Default);
 				preRead();
 				Debug.Log ("Start Recording...");
 				recordFlagTime = Time.time;
@@ -109,7 +105,10 @@ public class CubeScript : MonoBehaviour {
 			Debug.Log ("Saving Files... ");
 			reader.Close ();
 			writer.Close ();
+			readfs.Close ();
+			writefs.Close ();
 			File.Replace (path + "\\write.txt", path + "\\read.txt", path + "\\readBackup.txt");
+			Debug.Log ("Saving finished!");
 		}
 
 		if (Input.GetKeyDown (MakeCurve))
@@ -128,8 +127,10 @@ public class CubeScript : MonoBehaviour {
 
 		if (isRecording) {
 			Transform temp = transform;
+			Debug.Log (temp.position.ToString ());
+			Debug.Log (recordFlagPos.position.ToString ());
+			Debug.Log ((Vector3.Distance (temp.position, recordFlagPos.position)).ToString ());
 			writer.WriteLine ((Time.time - recordFlagTime).ToString () + "," + temp.position.x.ToString () + "," + temp.position.y.ToString () + "," + temp.position.z.ToString () );
-			//WritePos (Time.time-recordFlagTime, temp.position);
 			recordFlagTime = Time.time;
 			recordFlagPos = temp;
 			if (Vector3.Distance (temp.position, recordFlagPos.position) > recordPrecision) {
