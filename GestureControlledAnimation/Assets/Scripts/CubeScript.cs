@@ -6,20 +6,29 @@ using System.Text;
 using System;
 
 public class CubeScript : MonoBehaviour {
-
+	//modes
+	public bool isSelected = true ;
+	//
 	public AnimationCurve anim;
 	public AnimationCurve animX, animY, animZ;
-
+	//keys
 	public KeyCode record = KeyCode.R;
-	public KeyCode finishAndSave = KeyCode.S;
+	public KeyCode finishRecording = KeyCode.S;
 	public KeyCode resetRecording = KeyCode.Space;
-	public KeyCode play = KeyCode.P;
+	public KeyCode play = KeyCode.Space;
 	public KeyCode MakeCurve = KeyCode.M;
-	
+	//parameters
+	public float recordPrecision = 0.02f;//距离
+	public long startLine = 0;
+	public long endLine = 0;
+	//
 	private string contextPath;
 	private string path;
-	private FileStream readfs;
-	private StreamReader read;
+	private StreamReader reader;
+	private StreamWriter writer;
+	private Encoding encoder = Encoding.UTF8;
+	private float recordFlagTime = 0;
+	private Transform recordFlagPos;
 
 	private float currentTime = 0;
 	private float originX = 0, originY = 0, originZ = 0;
@@ -27,15 +36,14 @@ public class CubeScript : MonoBehaviour {
 
 	private bool finishedReading;
 	private bool isReplaying;
-
 	private bool isRecording;
 	private bool finishedRecording;
 
 	public void Start()
 	{
 		contextPath = System.IO.Directory.GetCurrentDirectory();
-		path = contextPath + "\\Assets\\UserFiles\\Positions\\test.txt";
-		Debug.Log (path);
+		path = contextPath + "\\Assets\\UserFiles\\Positions";
+		Debug.Log ("Test path : " + path);
 		originX = transform.position.x;
 		originY = transform.position.y;
 		originZ = transform.position.z;
@@ -58,15 +66,35 @@ public class CubeScript : MonoBehaviour {
 		if (Input.GetKeyDown (record)) 
 		{
 			Debug.Log ("Start Recording...");
+			recordFlagTime = Time.time;
+			recordFlagPos = transform;
 			isRecording = true;
-			finishedRecording = false;
+			try  
+			{
+				if(!File.Exists(path+"\\read.txt")){
+					Debug.Log("Making new file " + path);
+					File.Create(path);
+				}
+				if(!File.Exists(path+"\\write.txt")){
+					Debug.Log("Making new file " + path);
+					File.Create(path);
+				}
+				reader = new StreamReader(path + "\\read.txt");
+				writer = new StreamWriter(path + "\\write.txt");
+				setWritePos();
+			}  
+			catch (Exception ex)  
+			{  
+				Console.WriteLine("Open File Fails {0}", ex.ToString());  
+			}  
 		}
 
 		if (Input.GetKeyDown (finishAndSave)) 
 		{
+			if(fs != null)
+				fs.Close();  
 			Debug.Log ("Recording Finished! ");
 			isRecording = false;
-			finishedRecording = true;
 		}
 
 		if (Input.GetKeyDown (MakeCurve))
@@ -85,7 +113,13 @@ public class CubeScript : MonoBehaviour {
 
 
 		if (isRecording) {
-			WritePos (transform.position);
+			Transform temp = transform;
+			WritePos (Time.time-recordFlagTime, temp.position);
+			recordFlagTime = Time.time;
+			recordFlagPos = temp;
+			if (Vector3.Distance (temp.position, recordFlagPos.position) > recordPrecision) {
+				//
+			}
 		}
 		
 		if (isReplaying)
@@ -107,8 +141,7 @@ public class CubeScript : MonoBehaviour {
 		FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read);
 		StreamReader read = new StreamReader(fs, Encoding.Default);     
 		string strReadline;
-
-		float frameTime = 0.017f;
+//		float frameTime = 0.017f;
 		float sumTime = 0;
 
 		Keyframe[] ksX = new Keyframe[10000];
@@ -121,19 +154,16 @@ public class CubeScript : MonoBehaviour {
 
 		while ((strReadline = read.ReadLine()) != null) // strReadline即为按照行读取的字符串
 		{
-			if (cnt % 3 == 0) 	//增大抽样间隔
-			{
-				string[] rec = strReadline.Split (' ');
-				float recX = float.Parse (rec [0]);
-				float recY = float.Parse (rec [1]);
-				float recZ = float.Parse (rec [2]);
+			string[] rec = strReadline.Split (',');
+			float deltaTime = float.Parse (rec [0]);
+			float recX = float.Parse (rec [1]);
+			float recY = float.Parse (rec [2]);
+			float recZ = float.Parse (rec [3]);
 
-				ksX [cnt] = new Keyframe (sumTime, recX);
-				ksY [cnt] = new Keyframe (sumTime, recY);
-				ksZ [cnt] = new Keyframe (sumTime, recZ);
-
-			}
-			sumTime += frameTime;
+			ksX [cnt] = new Keyframe (sumTime, recX);
+			ksY [cnt] = new Keyframe (sumTime, recY);
+			ksZ [cnt] = new Keyframe (sumTime, recZ);
+			sumTime += deltaTime;
 			cnt++;
 		}
 
@@ -157,30 +187,17 @@ public class CubeScript : MonoBehaviour {
 		read.Close();
 	}
 
-	public void WritePos(Vector3 pos)
+	public void WritePos(float deltaTime, Vector3 pos)
 	{
-		FileStream fs = null;
-		Encoding encoder = Encoding.UTF8;  //将待写的入数据从字符串转换为字节数组  
-		byte[] bytes = encoder.GetBytes(pos.x.ToString() + " " + pos.y.ToString() + " " + pos.z.ToString() + " \r\n");  
+		byte[] bytes = encoder.GetBytes("   &   "+ deltaTime.ToString() + "," + pos.x.ToString() + "," + pos.y.ToString() + "," + pos.z.ToString() + "\r\n");  
 		try  
 		{
-			if(!File.Exists(path)){
-				Debug.Log("Making new file " + path);
-				File.Create(path);
-			}
-			fs = File.OpenWrite(path);
-			fs.Position = fs.Length;  //设定书写的開始位置为文件的末尾
-			fs.Write(bytes, 0, bytes.Length);  //将待写入内容追加到文件末尾
+			fs.Write(bytes, 0, bytes.Length);
 		}  
 		catch (Exception ex)  
 		{  
-			Console.WriteLine("Open File Fails {0}", ex.ToString());  
+			Console.WriteLine("Write Fails {0}", ex.ToString());  
 		}  
-		finally  
-		{  
-			if(fs != null)
-			fs.Close();  
-		} 
 	}
 
 	public void ReadPos()
@@ -200,6 +217,10 @@ public class CubeScript : MonoBehaviour {
 		float recZ = float.Parse (rec [2]);
 		transform.position = new Vector3 (recX, recY, recZ);
 
+	}
+
+	private void setWritePos(){
+		fs.Position = fs.Seek(line , SeekOrigin.Begin);
 	}
 }
 
