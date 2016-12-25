@@ -13,17 +13,19 @@ public class CubeScript : MonoBehaviour {
 	public AnimationCurve animX, animY, animZ;
 	//keys
 	public KeyCode record = KeyCode.R;
-	public KeyCode finishRecording = KeyCode.S;
-	public KeyCode resetRecording = KeyCode.Space;
+	public KeyCode finishRecording = KeyCode.Space;
+	public KeyCode saveRecording = KeyCode.S;
 	public KeyCode play = KeyCode.Space;
 	public KeyCode MakeCurve = KeyCode.M;
 	//parameters
 	public float recordPrecision = 0.02f;//距离
-	public long startLine = 0;
-	public long endLine = 0;
+	public int startLine = 0;
+	public int endLine = 0;
 	//
 	private string contextPath;
 	private string path;
+	private FileStream readfs;
+	private FileStream writefs;
 	private StreamReader reader;
 	private StreamWriter writer;
 	private Encoding encoder = Encoding.UTF8;
@@ -65,23 +67,29 @@ public class CubeScript : MonoBehaviour {
 
 		if (Input.GetKeyDown (record)) 
 		{
-			Debug.Log ("Start Recording...");
-			recordFlagTime = Time.time;
-			recordFlagPos = transform;
-			isRecording = true;
 			try  
 			{
 				if(!File.Exists(path+"\\read.txt")){
-					Debug.Log("Making new file " + path);
-					File.Create(path);
+					Debug.Log("Making new file " + path+"\\read.txt");
+					File.Create(path+"\\read.txt");
 				}
 				if(!File.Exists(path+"\\write.txt")){
-					Debug.Log("Making new file " + path);
-					File.Create(path);
+					Debug.Log("Making new file " + path+"\\write.txt");
+					File.Create(path+"\\write.txt");
 				}
-				reader = new StreamReader(path + "\\read.txt");
+				path = @"E:\a.txt";
+				readfs = new FileStream( path, FileMode.Open, FileAccess.Read);
+//				reader = new StreamReader(rpath);
+				reader = new StreamReader(readfs);
+				if(reader == null)Debug.Log("yes");
+				else Debug.Log("no");
+				Debug.Log("hey");
 				writer = new StreamWriter(path + "\\write.txt");
-				setWritePos();
+				preRead();
+				Debug.Log ("Start Recording...");
+				recordFlagTime = Time.time;
+				recordFlagPos = transform;
+				isRecording = true;
 			}  
 			catch (Exception ex)  
 			{  
@@ -89,12 +97,19 @@ public class CubeScript : MonoBehaviour {
 			}  
 		}
 
-		if (Input.GetKeyDown (finishAndSave)) 
+		if (Input.GetKeyDown (finishRecording)) 
 		{
-			if(fs != null)
-				fs.Close();  
 			Debug.Log ("Recording Finished! ");
 			isRecording = false;
+			postRead ();
+		}
+
+		if (Input.GetKeyDown (saveRecording)) 
+		{
+			Debug.Log ("Saving Files... ");
+			reader.Close ();
+			writer.Close ();
+			File.Replace (path + "\\write.txt", path + "\\read.txt", path + "\\readBackup.txt");
 		}
 
 		if (Input.GetKeyDown (MakeCurve))
@@ -106,7 +121,6 @@ public class CubeScript : MonoBehaviour {
 		if (Input.GetKeyDown (play)) 
 		{
 			Debug.Log ("Replay!");
-
 			isReplaying = true;
 			currentTime = Time.time;
 		}
@@ -114,7 +128,8 @@ public class CubeScript : MonoBehaviour {
 
 		if (isRecording) {
 			Transform temp = transform;
-			WritePos (Time.time-recordFlagTime, temp.position);
+			writer.WriteLine ((Time.time - recordFlagTime).ToString () + "," + temp.position.x.ToString () + "," + temp.position.y.ToString () + "," + temp.position.z.ToString () );
+			//WritePos (Time.time-recordFlagTime, temp.position);
 			recordFlagTime = Time.time;
 			recordFlagPos = temp;
 			if (Vector3.Distance (temp.position, recordFlagPos.position) > recordPrecision) {
@@ -138,8 +153,7 @@ public class CubeScript : MonoBehaviour {
 
 	public void makeCurve()
 	{
-		FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read);
-		StreamReader read = new StreamReader(fs, Encoding.Default);     
+		reader = new StreamReader(path+"\\read.txt");
 		string strReadline;
 //		float frameTime = 0.017f;
 		float sumTime = 0;
@@ -152,7 +166,7 @@ public class CubeScript : MonoBehaviour {
 		float lastY = originY;
 		float lastZ = originZ;
 
-		while ((strReadline = read.ReadLine()) != null) // strReadline即为按照行读取的字符串
+		while ((strReadline = reader.ReadLine()) != null) // strReadline即为按照行读取的字符串
 		{
 			string[] rec = strReadline.Split (',');
 			float deltaTime = float.Parse (rec [0]);
@@ -183,8 +197,7 @@ public class CubeScript : MonoBehaviour {
 		animZ.preWrapMode = WrapMode.Loop;
 		animZ.postWrapMode = WrapMode.Loop;
 
-		fs.Close();
-		read.Close();
+		reader.Close();
 	}
 
 	public void WritePos(float deltaTime, Vector3 pos)
@@ -192,7 +205,7 @@ public class CubeScript : MonoBehaviour {
 		byte[] bytes = encoder.GetBytes("   &   "+ deltaTime.ToString() + "," + pos.x.ToString() + "," + pos.y.ToString() + "," + pos.z.ToString() + "\r\n");  
 		try  
 		{
-			fs.Write(bytes, 0, bytes.Length);
+//			fs.Write(bytes, 0, bytes.Length);
 		}  
 		catch (Exception ex)  
 		{  
@@ -200,27 +213,31 @@ public class CubeScript : MonoBehaviour {
 		}  
 	}
 
-	public void ReadPos()
-	{
-		
-		string strReadline = read.ReadLine ();
-
-		if (strReadline == null) {
-			read.Close ();
-			finishedReading = true;
-			return;
-		}
-
-		string[] rec = strReadline.Split(' ');
-		float recX = float.Parse (rec [0]);
-		float recY = float.Parse (rec [1]);
-		float recZ = float.Parse (rec [2]);
-		transform.position = new Vector3 (recX, recY, recZ);
-
-	}
 
 	private void setWritePos(){
-		fs.Position = fs.Seek(line , SeekOrigin.Begin);
+//		fs.Position = fs.Seek(line , SeekOrigin.Begin);
+	}
+
+	private void preRead(){
+		int i = startLine;
+		string temp = "";
+		while (i-->0) {
+			temp = reader.ReadLine ();
+			writer.WriteLine (temp);
+		}
+	}
+
+	private void postRead(){
+		if (endLine == -1)
+			return;
+		int i = endLine > startLine ? endLine - startLine : startLine;
+		string temp = "";
+		while (i-->0) {
+			reader.ReadLine ();
+		}
+		while ((temp = reader.ReadLine ())!=null) {
+			writer.WriteLine (temp);
+		}
 	}
 }
 
