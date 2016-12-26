@@ -61,6 +61,8 @@ public class PersonCtrlRecord : MonoBehaviour
     int begin_frame = 0;
     int end_frame = 0;
 
+    public float delta_slide_time = 0.017f;
+
     MeshRenderer meshRenderer;
 
     void initSliderBar()
@@ -104,6 +106,7 @@ public class PersonCtrlRecord : MonoBehaviour
             {
                 isRecording = false;
                 isReplaying = true;
+                isSliding = false;
                 //meshRenderer.enabled = false;
                 currentTime = Time.time;
             }
@@ -213,6 +216,7 @@ public class PersonCtrlRecord : MonoBehaviour
             }
             else
             {
+                changeSlider();
                 slide_time = sliderBar.value;
                 getTimeAndFrame(slide_time);
                 transform.position = new Vector3(animX.Evaluate(slide_time),
@@ -222,6 +226,14 @@ public class PersonCtrlRecord : MonoBehaviour
             
         }
 
+    }
+
+    void changeSlider()
+    {
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
+            slide_time -= delta_slide_time;
+        else if (Input.GetKeyDown(KeyCode.RightArrow))
+            slide_time += delta_slide_time;
     }
 
     int getFrameIndex(float time)
@@ -247,7 +259,7 @@ public class PersonCtrlRecord : MonoBehaviour
             if (getFrameIndex(value) > begin_frame)
                 end_frame = getFrameIndex(value);
             else
-                Debug.Log("make sure end_frame > begin_frame");
+                Debug.Log("make sure end_frame > begin_frame" + " begin_frame: " + begin_frame.ToString() + " end_frame: " + end_frame );
             Debug.Log("end: " + "time: " + end_time.ToString() + " frame: " + end_frame.ToString());
         }
     }
