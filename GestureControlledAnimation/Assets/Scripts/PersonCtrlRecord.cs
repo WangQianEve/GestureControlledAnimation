@@ -11,16 +11,15 @@ public class PersonCtrlRecord : MonoBehaviour {
 	public AnimationCurve anim;
 	public AnimationCurve animX, animY, animZ;
 	//keys
-	public KeyCode record = KeyCode.R;
-	public KeyCode finishRecording = KeyCode.Space;
-	public KeyCode saveRecording = KeyCode.S;
-	public KeyCode play = KeyCode.Space;
-	public KeyCode MakeCurve = KeyCode.M;
+	public KeyCode recordKey = KeyCode.R;
+	public KeyCode finishKey = KeyCode.F;
+	public KeyCode selectKey = KeyCode.S;
+	public KeyCode playKey = KeyCode.Space;
 	//parameters
 	public float recordPrecision = 0.02f;//距离
-	public int startLine = 0;
-	public int endLine = -1;
 	//
+	private MeshRenderer meshRenderer;
+
 	private bool recordSelected;
 	private string contextPath;
 	private string path;
@@ -38,13 +37,23 @@ public class PersonCtrlRecord : MonoBehaviour {
 	private float currentTime = 0;
 	private float originX = 0, originY = 0, originZ = 0;
 	private float totalTime = 0;
+	private float startTime = 0;
+	private float endTime = -1;
+	private float curveStartTime = 0;
+	private float breathTime = 0.5f;
+
+	private float sumTime = 0f;
+
+	private int editEndLine = 0;
+	private int editStartLine = 0;
+	private int recordStartLine = -1;
+	private int recordEndLine = -2;
 
 	private bool finishedReading;
 	private bool isReplaying;
 	private bool isRecording;
 	private bool finishedRecording;
-
-	MeshRenderer meshRenderer;
+	private bool isFirstFrame = true;
 	public void Start()
 	{
 		meshRenderer = GetComponent<MeshRenderer> ();
@@ -54,10 +63,11 @@ public class PersonCtrlRecord : MonoBehaviour {
 		readFileName = path + name + "_r.txt";
 		writeFileName = path + name + "_w.txt";
 		readFileBackupName = path + name + "_b.txt";
-		Debug.Log (name + " Test path : " + readFileName);
 		originX = transform.position.x;
 		originY = transform.position.y;
 		originZ = transform.position.z;
+
+		totalTime = 0f;
 
 		finishedReading = false;
 		isReplaying = false;
@@ -68,9 +78,11 @@ public class PersonCtrlRecord : MonoBehaviour {
 	public void Update()
 	{
 
-		if (Input.GetKeyDown (record)) 
+		if (Input.GetKeyDown (recordKey)) 
 		{
 			recordSelected = cubeCtrl.selected;
+			curveStartTime = Time.time - startTime + breathTime;
+			Debug.Log (curveStartTime.ToString ());
 			if (!recordSelected) {
 				isRecording = false;
 				isReplaying = true;
@@ -95,10 +107,13 @@ public class PersonCtrlRecord : MonoBehaviour {
 					if(reader == null)Debug.Log("reader null");
 					writer = new StreamWriter (writefs, Encoding.Default);
 					if(writer == null)Debug.Log("writer null");
+					Debug.Log ("Start Recording..."+startTime.ToString());
+					recordFlagTime = Time.time - startTime + breathTime;
+					Debug.Log(recordFlagTime.ToString());
+					Debug.Log(recordFlagTime.CompareTo(curveStartTime).ToString());
 					preRead ();
-					Debug.Log ("Start Recording...");
-					recordFlagTime = Time.time;//?
-					recordFlagPos = transform.position;
+					editStartLine = recordStartLine + 1;
+					editEndLine = recordStartLine ;
 					isRecording = true;
 					isReplaying = false;
 				} catch (Exception ex) {  
@@ -107,32 +122,22 @@ public class PersonCtrlRecord : MonoBehaviour {
 			}
 		}
 
-		if (Input.GetKeyDown (finishRecording)) 
+		if (Input.GetKeyDown (finishKey)) 
 		{
-			if (recordSelected) {
-				Debug.Log (name+ " Recording Finished! ");
-				postRead ();
-			}
 			isRecording = false;
 			isReplaying = false;
-		}
-
-		if (Input.GetKeyDown (saveRecording) && Input.GetKey(KeyCode.LeftShift)) 
-		{
-			if (recordSelected) {
-				Debug.Log (name+" Saving Files ");
-				reader.Close ();
-				writer.Close ();
-				readfs.Close ();
-				writefs.Close ();
-				File.Replace (writeFileName, readFileName, readFileBackupName);
-				Debug.Log ("Saving finished!");
-			}
-		}
-
-		if (Input.GetKeyDown (MakeCurve))
-		{
-			if (cubeCtrl.selected || recordSelected) {
+			if (cubeCtrl.selected) {
+				if (recordSelected) {
+					Debug.Log (name+ " Recording Finished! ");
+					postRead ();
+					Debug.Log (name+" Saving Files ");
+					reader.Close ();
+					writer.Close ();
+					readfs.Close ();
+					writefs.Close ();
+					File.Replace (writeFileName, readFileName, readFileBackupName);
+					Debug.Log ("Saving finished!");
+				}
 				makeCurve ();
 				Debug.Log (name+ " finished making curve");
 			}
@@ -140,18 +145,35 @@ public class PersonCtrlRecord : MonoBehaviour {
 			
 		if (isRecording) {
 			Vector3 temp = transform.position;
-			if (Vector3.Distance (temp, recordFlagPos) > recordPrecision) {
+			float ttime = Time.time - curveStartTime;
+			if (ttime <= startTime) {
+				Debug.Log ("ttime "+ttime.ToString());
+				if (startTime == 0 && ttime==0) {
+					writer.WriteLine ("0" + "," + temp.x.ToString () + "," + temp.y.ToString () + "," + temp.z.ToString () );
+					recordFlagTime = Time.time;
+					recordFlagPos = temp;
+					editEndLine++;
+				}
+				return;
+			}
+			if (Time.time - curveStartTime >= endTime && endTime >= 0) {
+				isRecording = false;
+			}
+			if (Vector3.Distance (temp, recordFlagPos) > recordPrecision || (!isRecording) ) {
 				writer.WriteLine ((Time.time - recordFlagTime).ToString () + "," + temp.x.ToString () + "," + temp.y.ToString () + "," + temp.z.ToString () );
 				recordFlagTime = Time.time;
 				recordFlagPos = temp;
+				editEndLine++;
 			}
 		}
 
 		if (isReplaying)
 		{
-			if (Time.time - currentTime < totalTime) {
-				transform.position = new Vector3 (animX.Evaluate (Time.time - currentTime), 
-					animY.Evaluate (Time.time - currentTime), animZ.Evaluate (Time.time - currentTime));
+			float delta = Time.time - curveStartTime;
+			if (delta < 0)
+				delta = 0f;
+			if (delta  < totalTime) {
+				transform.position = new Vector3 (animX.Evaluate (delta), animY.Evaluate (delta), animZ.Evaluate (delta));
 			} else {
 				meshRenderer.enabled = true;
 				isReplaying = false;
@@ -163,8 +185,7 @@ public class PersonCtrlRecord : MonoBehaviour {
 	{
 		reader = new StreamReader(readFileName);
 		string strReadline;
-		float sumTime = 0;
-
+		sumTime = 0f;
 		Keyframe[] ksX = new Keyframe[10000];
 		Keyframe[] ksY = new Keyframe[10000];
 		Keyframe[] ksZ = new Keyframe[10000];
@@ -173,7 +194,7 @@ public class PersonCtrlRecord : MonoBehaviour {
 		float lastY = originY;
 		float lastZ = originZ;
 
-		while ((strReadline = reader.ReadLine()) != null) // strReadline即为按照行读取的字符串
+		while ((strReadline = reader.ReadLine()) != null)
 		{
 			string[] rec = strReadline.Split (',');
 			float deltaTime = float.Parse (rec [0]);
@@ -207,24 +228,39 @@ public class PersonCtrlRecord : MonoBehaviour {
 	}
 
 	private void preRead(){
-		int i = startLine;
-		string temp = "";
-		while (i-->0) {
-			temp = reader.ReadLine ();
+		int i = recordStartLine;
+		sumTime = 0f;
+		while (i-->=0) {
+			string temp = reader.ReadLine ();
+			string[] rec = temp.Split (',');
+			float deltaTime = float.Parse (rec [0]);
+			if(i==0)
+				recordFlagPos = new Vector3 (float.Parse (rec [1]), float.Parse(rec[2]), float.Parse(rec[3]) );
+			sumTime = sumTime + deltaTime;
 			writer.WriteLine (temp);
 		}
+		recordFlagTime = recordFlagTime + sumTime;
 	}
 
 	private void postRead(){
-		if (endLine == -1)
+		if (recordEndLine == -2)
 			return;
-		int i = endLine > startLine ? endLine - startLine : startLine;
-		string temp = "";
+		int i = recordEndLine > recordStartLine ? recordEndLine - recordStartLine : recordStartLine;
 		while (i-->0) {
-			reader.ReadLine ();
+			string temp = reader.ReadLine ();
+			string[] rec = temp.Split (',');
+			sumTime = sumTime + float.Parse (rec [0]);
 		}
-		while ((temp = reader.ReadLine ())!=null) {
-			writer.WriteLine (temp);
+		string ttemp = reader.ReadLine ();
+		if (ttemp != null) {//the modified line
+			string[] rrec = ttemp.Split (',');
+			sumTime = sumTime + float.Parse (rrec [0]);
+			float time = sumTime - recordFlagTime + curveStartTime;
+			writer.WriteLine (time.ToString()+","+float.Parse(rrec[1]).ToString()+","+float.Parse(rrec[2]).ToString()+","+float.Parse(rrec[3]).ToString());
+		}
+		ttemp = "";
+		while ((ttemp = reader.ReadLine ())!=null) {
+			writer.WriteLine (ttemp);
 		}
 	}
 }
