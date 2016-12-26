@@ -1,7 +1,11 @@
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2008
 
+Project("{727E25EE-7E63-8C7D-631C-8B6EAC79C0CC}") = "GestureControlledAnimation", "Assembly-CSharp-firstpass.csproj", "{7E22C5AD-F79A-E08B-BCCA-512734CACF87}"
+EndProject
 Project("{727E25EE-7E63-8C7D-631C-8B6EAC79C0CC}") = "GestureControlledAnimation", "Assembly-CSharp.csproj", "{0A64A41F-9305-42AA-DAE4-686F5A8B674E}"
+EndProject
+Project("{727E25EE-7E63-8C7D-631C-8B6EAC79C0CC}") = "GestureControlledAnimation", "Assembly-CSharp-Editor-firstpass.csproj", "{BB45FD49-C8F3-3741-D5F4-B578170DD986}"
 EndProject
 Project("{727E25EE-7E63-8C7D-631C-8B6EAC79C0CC}") = "GestureControlledAnimation", "Assembly-CSharp-Editor.csproj", "{45DCB665-0A96-A113-8D05-757D7E4F2B55}"
 EndProject
@@ -11,10 +15,18 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7E22C5AD-F79A-E08B-BCCA-512734CACF87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E22C5AD-F79A-E08B-BCCA-512734CACF87}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E22C5AD-F79A-E08B-BCCA-512734CACF87}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E22C5AD-F79A-E08B-BCCA-512734CACF87}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0A64A41F-9305-42AA-DAE4-686F5A8B674E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0A64A41F-9305-42AA-DAE4-686F5A8B674E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0A64A41F-9305-42AA-DAE4-686F5A8B674E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0A64A41F-9305-42AA-DAE4-686F5A8B674E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB45FD49-C8F3-3741-D5F4-B578170DD986}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB45FD49-C8F3-3741-D5F4-B578170DD986}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB45FD49-C8F3-3741-D5F4-B578170DD986}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB45FD49-C8F3-3741-D5F4-B578170DD986}.Release|Any CPU.Build.0 = Release|Any CPU
 		{45DCB665-0A96-A113-8D05-757D7E4F2B55}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{45DCB665-0A96-A113-8D05-757D7E4F2B55}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{45DCB665-0A96-A113-8D05-757D7E4F2B55}.Release|Any CPU.ActiveCfg = Release|Any CPU

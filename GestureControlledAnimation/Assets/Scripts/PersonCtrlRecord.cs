@@ -1,13 +1,12 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
+using System.Collections.Generic;
 using System.Collections;
 using System.IO;
 using System.Text;
 using System;
-
-public class CubeScript : MonoBehaviour {
+public class PersonCtrlRecord : MonoBehaviour {
 	//modes
-	public bool isSelected = true ;
+	public CubeControl cubeCtrl;
 	//
 	public AnimationCurve anim;
 	public AnimationCurve animX, animY, animZ;
@@ -20,10 +19,14 @@ public class CubeScript : MonoBehaviour {
 	//parameters
 	public float recordPrecision = 0.02f;//距离
 	public int startLine = 0;
-	public int endLine = 0;
+	public int endLine = -1;
 	//
+	private bool recordSelected;
 	private string contextPath;
 	private string path;
+	private string readFileName;
+	private string writeFileName;
+	private string readFileBackupName;
 	private FileStream readfs;
 	private FileStream writefs;
 	private StreamReader reader;
@@ -41,18 +44,23 @@ public class CubeScript : MonoBehaviour {
 	private bool isRecording;
 	private bool finishedRecording;
 
+	MeshRenderer meshRenderer;
 	public void Start()
 	{
-		contextPath = System.IO.Directory.GetCurrentDirectory();
-		path = contextPath + "\\Assets\\UserFiles\\Positions";
-		Debug.Log ("Test path : " + path);
+		meshRenderer = GetComponent<MeshRenderer> ();
+		cubeCtrl = GetComponent (typeof(CubeControl)) as CubeControl;
+		path = System.IO.Directory.GetCurrentDirectory();
+		path = path + "\\Assets\\UserFiles\\Positions\\";
+		readFileName = path + name + "_r.txt";
+		writeFileName = path + name + "_w.txt";
+		readFileBackupName = path + name + "_b.txt";
+		Debug.Log (name + " Test path : " + readFileName);
 		originX = transform.position.x;
 		originY = transform.position.y;
 		originZ = transform.position.z;
 
 		finishedReading = false;
 		isReplaying = false;
-
 		isRecording = false;
 		finishedRecording = true;
 	}
@@ -62,64 +70,74 @@ public class CubeScript : MonoBehaviour {
 
 		if (Input.GetKeyDown (record)) 
 		{
-			try  
-			{
-				if(!File.Exists(path+"\\read.txt")){
-					Debug.Log("Making new file " + path+"\\read.txt");
-					File.Create(path+"\\read.txt");
-				}
-				if(!File.Exists(path+"\\write.txt")){
-					Debug.Log("Making new file " + path+"\\write.txt");
-					File.Create(path+"\\write.txt");
-				}
-				readfs = new FileStream( path+"\\read.txt", FileMode.Open, FileAccess.Read);
-				writefs = new FileStream( path+"\\write.txt", FileMode.Open, FileAccess.Write);
-				reader = new StreamReader(readfs,Encoding.Default);
-				writer = new StreamWriter(writefs,Encoding.Default);
-				preRead();
-				Debug.Log ("Start Recording...");
-				recordFlagTime = Time.time;
-				recordFlagPos = transform.position;
-				isRecording = true;
-			}  
-			catch (Exception ex)  
-			{  
-				Console.WriteLine("Open File Fails {0}", ex.ToString());  
-			}  
+			recordSelected = cubeCtrl.selected;
+			if (!recordSelected) {
+				isRecording = false;
+				isReplaying = true;
+				meshRenderer.enabled = false;
+				currentTime = Time.time;
+			} else {
+				try {
+					if (!File.Exists (readFileName)) {
+						Debug.Log ("Making new file " + readFileName);
+						File.Create (readFileName);
+					}
+					if (!File.Exists (writeFileName)) {
+						Debug.Log ("Making new file " + writeFileName);
+						File.Create (writeFileName);
+					}
+					Debug.Log ("Start Recording...1");
+					readfs = new FileStream (readFileName, FileMode.Open, FileAccess.Read);
+					if(readfs == null)Debug.Log("readfs null");
+					writefs = new FileStream (writeFileName, FileMode.Open, FileAccess.Write);
+					if(writefs == null)Debug.Log("writefs null");
+					reader = new StreamReader (readfs, Encoding.Default);
+					if(reader == null)Debug.Log("reader null");
+					writer = new StreamWriter (writefs, Encoding.Default);
+					if(writer == null)Debug.Log("writer null");
+					preRead ();
+					Debug.Log ("Start Recording...");
+					recordFlagTime = Time.time;//?
+					recordFlagPos = transform.position;
+					isRecording = true;
+					isReplaying = false;
+				} catch (Exception ex) {  
+					Console.WriteLine ("Open File Fails {0}", ex.ToString ());  
+				}  
+			}
 		}
 
 		if (Input.GetKeyDown (finishRecording)) 
 		{
-			Debug.Log ("Recording Finished! ");
+			if (recordSelected) {
+				Debug.Log (name+ " Recording Finished! ");
+				postRead ();
+			}
 			isRecording = false;
-			postRead ();
+			isReplaying = false;
 		}
 
-		if (Input.GetKeyDown (saveRecording) && Input.GetKeyDown(KeyCode.LeftShift)) 
+		if (Input.GetKeyDown (saveRecording) && Input.GetKey(KeyCode.LeftShift)) 
 		{
-			Debug.Log ("Saving Files... ");
-			reader.Close ();
-			writer.Close ();
-			readfs.Close ();
-			writefs.Close ();
-			File.Replace (path + "\\write.txt", path + "\\read.txt", path + "\\readBackup.txt");
-			Debug.Log ("Saving finished!");
+			if (recordSelected) {
+				Debug.Log (name+" Saving Files ");
+				reader.Close ();
+				writer.Close ();
+				readfs.Close ();
+				writefs.Close ();
+				File.Replace (writeFileName, readFileName, readFileBackupName);
+				Debug.Log ("Saving finished!");
+			}
 		}
 
 		if (Input.GetKeyDown (MakeCurve))
 		{
-			makeCurve ();
-			Debug.Log ("finished making curve!");
+			if (cubeCtrl.selected || recordSelected) {
+				makeCurve ();
+				Debug.Log (name+ " finished making curve");
+			}
 		}
-
-		if (Input.GetKeyDown (play)) 
-		{
-			Debug.Log ("Replay!");
-			isReplaying = true;
-			currentTime = Time.time;
-		}
-
-
+			
 		if (isRecording) {
 			Vector3 temp = transform.position;
 			if (Vector3.Distance (temp, recordFlagPos) > recordPrecision) {
@@ -128,21 +146,22 @@ public class CubeScript : MonoBehaviour {
 				recordFlagPos = temp;
 			}
 		}
-		
+
 		if (isReplaying)
 		{
-			//ReadPos ();
 			if (Time.time - currentTime < totalTime) {
 				transform.position = new Vector3 (animX.Evaluate (Time.time - currentTime), 
 					animY.Evaluate (Time.time - currentTime), animZ.Evaluate (Time.time - currentTime));
+			} else {
+				meshRenderer.enabled = true;
+				isReplaying = false;
 			}
 		}
-
 	}
 
 	public void makeCurve()
 	{
-		reader = new StreamReader(path+"\\read.txt");
+		reader = new StreamReader(readFileName);
 		string strReadline;
 		float sumTime = 0;
 
@@ -161,11 +180,10 @@ public class CubeScript : MonoBehaviour {
 			float recX = float.Parse (rec [1]);
 			float recY = float.Parse (rec [2]);
 			float recZ = float.Parse (rec [3]);
-
+			sumTime += deltaTime;
 			ksX [cnt] = new Keyframe (sumTime, recX);
 			ksY [cnt] = new Keyframe (sumTime, recY);
 			ksZ [cnt] = new Keyframe (sumTime, recZ);
-			sumTime += deltaTime;
 			cnt++;
 		}
 
@@ -187,7 +205,7 @@ public class CubeScript : MonoBehaviour {
 
 		reader.Close();
 	}
-		
+
 	private void preRead(){
 		int i = startLine;
 		string temp = "";
@@ -210,6 +228,3 @@ public class CubeScript : MonoBehaviour {
 		}
 	}
 }
-
-
-
