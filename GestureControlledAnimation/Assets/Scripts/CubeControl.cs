@@ -3,42 +3,54 @@ using System.Collections;
 using Leap;
 using UnityEngine.UI;
 
-public class CubeControl : MonoBehaviour {
+public class CubeControl : MonoBehaviour
+{
 
-  public GameObject cube;
-  public HandController hc;
-  public bool selected;
-  // Use this for initialization
-  void OnTriggerEnter(Collider c)
-  {
-   if (c.gameObject.transform.parent.name.Equals("index"))
-   {
-    selected = true;
-   }
-  }
+    public HandController hc;
+    public KeyCode selectKey = KeyCode.S;
+    public bool selected;
+    private Frame currentFrame;
+    private Vector3 offset;
+    private GameObject ctrler;
+    // Use this for initialization
+    void OnTriggerEnter(Collider c)
+    {
+        if (!Input.GetKey(selectKey))
+        {
+            selected = false;
+            return;
+        }
+        if (c.gameObject.transform.parent == null)
+            return;
+        if (c.gameObject.transform.parent.parent == null)
+            return;
+        if (c.gameObject.transform.parent.parent.name.Equals("RigidRoundHand(Clone)"))
+        {
+            selected = true;
+            offset = transform.position - c.transform.position;
+            ctrler = c.gameObject;
+        }
+        else {
+            selected = false;
+            ctrler = null;
+        }
+    }
+    void Start()
+    {
+        hc = GameObject.FindGameObjectWithTag("hc").GetComponent<HandController>();
+        selected = false;
+    }
 
-  void Start()
-  {
-	  selected = false;
-  }
-  
-  Frame currentFrame;
-  void Update()
-  {
-		if(!selected)return;
-    this.currentFrame = hc.GetFrame();  
-		foreach (var h in hc.GetFrame().Hands)
-		{
-			foreach (var f in h.Fingers)
-			{
-				if (f.Type == Finger.FingerType.TYPE_INDEX)
-			  {
-					Leap.Vector position = f.TipPosition;
-					Vector3 unityPosition = position.ToUnityScaled(false);
-					Vector3 worldPosition = hc.transform.TransformPoint(unityPosition);
-  				this.cube.transform.position = worldPosition;
-			  }
-			}
-		}
-  }
+    void Update()
+    {
+        if (!selected || ctrler == null)
+        {
+            //Debug.Log("no");
+            return;
+        }
+        if (Input.GetKeyUp(selectKey) && selected)
+            selected = false;
+        transform.position = ctrler.transform.position + offset;
+        //Debug.Log(transform.position);
+    }
 }

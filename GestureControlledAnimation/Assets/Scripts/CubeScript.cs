@@ -5,200 +5,219 @@ using System.IO;
 using System.Text;
 using System;
 
-public class CubeScript : MonoBehaviour {
+public class CubeScript : MonoBehaviour
+{
+    //modes
+    public bool isSelected = true;
+    //
+    public AnimationCurve anim;
+    public AnimationCurve animX, animY, animZ;
+    //keys
+    public KeyCode record = KeyCode.R;
+    public KeyCode finishRecording = KeyCode.Space;
+    public KeyCode saveRecording = KeyCode.S;
+    public KeyCode play = KeyCode.Space;
+    public KeyCode MakeCurve = KeyCode.M;
+    //parameters
+    public float recordPrecision = 0.02f;//距离
+    public int startLine = 0;
+    public int endLine = 0;
+    //
+    private string contextPath;
+    private string path;
+    private FileStream readfs;
+    private FileStream writefs;
+    private StreamReader reader;
+    private StreamWriter writer;
+    private Encoding encoder = Encoding.UTF8;
+    private float recordFlagTime = 0;
+    private Vector3 recordFlagPos;
 
-	public AnimationCurve anim;
-	public AnimationCurve animX, animY, animZ;
+    private float currentTime = 0;
+    private float originX = 0, originY = 0, originZ = 0;
+    private float totalTime = 0;
 
-	public KeyCode record = KeyCode.R;
-	public KeyCode finishAndSave = KeyCode.S;
-	public KeyCode resetRecording = KeyCode.Space;
-	public KeyCode play = KeyCode.P;
-	public KeyCode MakeCurve = KeyCode.M;
-	
-	private string path;
-	private FileStream readfs;
-	private StreamReader read;
+    private bool finishedReading;
+    private bool isReplaying;
+    private bool isRecording;
+    private bool finishedRecording;
 
-	private float currentTime = 0;
-	private float originX = 0, originY = 0, originZ = 0;
-	private float totalTime = 0;
+    public void Start()
+    {
+        contextPath = System.IO.Directory.GetCurrentDirectory();
+        path = contextPath + "\\Assets\\UserFiles\\Positions";
+        Debug.Log("Test path : " + path);
+        originX = transform.position.x;
+        originY = transform.position.y;
+        originZ = transform.position.z;
 
-	private bool finishedReading;
-	private bool isReplaying;
+        finishedReading = false;
+        isReplaying = false;
 
-	private bool isRecording;
-	private bool finishedRecording;
+        isRecording = false;
+        finishedRecording = true;
+    }
 
-	public void Start()
-	{
-		path = "C:\\Users\\bingochen\\Desktop\\Junior\\HCI\\project\\GestureControlledAnimation\\1.txt";
+    public void Update()
+    {
 
-		originX = transform.position.x;
-		originY = transform.position.y;
-		originZ = transform.position.z;
+        if (Input.GetKeyDown(record))
+        {
+            try
+            {
+                if (!File.Exists(path + "\\read.txt"))
+                {
+                    Debug.Log("Making new file " + path + "\\read.txt");
+                    File.Create(path + "\\read.txt");
+                }
+                if (!File.Exists(path + "\\write.txt"))
+                {
+                    Debug.Log("Making new file " + path + "\\write.txt");
+                    File.Create(path + "\\write.txt");
+                }
+                readfs = new FileStream(path + "\\read.txt", FileMode.Open, FileAccess.Read);
+                writefs = new FileStream(path + "\\write.txt", FileMode.Open, FileAccess.Write);
+                reader = new StreamReader(readfs, Encoding.Default);
+                writer = new StreamWriter(writefs, Encoding.Default);
+                preRead();
+                Debug.Log("Start Recording...");
+                recordFlagTime = Time.time;
+                recordFlagPos = transform.position;
+                isRecording = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Open File Fails {0}", ex.ToString());
+            }
+        }
 
-		finishedReading = false;
-		isReplaying = false;
+        if (Input.GetKeyDown(finishRecording))
+        {
+            Debug.Log("Recording Finished! ");
+            isRecording = false;
+            postRead();
+        }
 
-		isRecording = false;
-		finishedRecording = true;
+        if (Input.GetKeyDown(saveRecording) && Input.GetKeyDown(KeyCode.LeftShift))
+        {
+            Debug.Log("Saving Files... ");
+            reader.Close();
+            writer.Close();
+            readfs.Close();
+            writefs.Close();
+            File.Replace(path + "\\write.txt", path + "\\read.txt", path + "\\readBackup.txt");
+            Debug.Log("Saving finished!");
+        }
 
-		//makeCurve ();
-	}
+        if (Input.GetKeyDown(MakeCurve))
+        {
+            makeCurve();
+            Debug.Log("finished making curve!");
+        }
 
-	public void Update()
-	{
-//		if (!isReplaying) 
-//		{
-//			transform.position = new Vector3 (anim.Evaluate (Time.time), anim.Evaluate (Time.time), 0);
-//		}
-
-		if (Input.GetKeyDown (record)) 
-		{
-			Debug.Log ("Start Recording...");
-			isRecording = true;
-			finishedRecording = false;
-		}
-
-		if (Input.GetKeyDown (finishAndSave)) 
-		{
-			Debug.Log ("Recording Finished! ");
-			isRecording = false;
-			finishedRecording = true;
-		}
-
-		if (Input.GetKeyDown (MakeCurve))
-		{
-			makeCurve ();
-			Debug.Log ("finished making curve!");
-		}
-
-		if (Input.GetKeyDown (play)) 
-		{
-			Debug.Log ("Replay!");
-			
-
-			isReplaying = true;
-			//finishedReading = false;
-			currentTime = Time.time;
-		}
-
-
-		if (isRecording) {
-			WritePos (transform.position);
-		}
-		
-		//if (!finishedReading && isReplaying) 
-		if (isReplaying)
-		{
-			//ReadPos ();
-			if (Time.time - currentTime < totalTime) {
-				transform.position = new Vector3 (animX.Evaluate (Time.time - currentTime), 
-					animY.Evaluate (Time.time - currentTime), animZ.Evaluate (Time.time - currentTime));
-			}
-		}
-
-	}
+        if (Input.GetKeyDown(play))
+        {
+            Debug.Log("Replay!");
+            isReplaying = true;
+            currentTime = Time.time;
+        }
 
 
+        if (isRecording)
+        {
+            Vector3 temp = transform.position;
+            if (Vector3.Distance(temp, recordFlagPos) > recordPrecision)
+            {
+                writer.WriteLine((Time.time - recordFlagTime).ToString() + "," + temp.x.ToString() + "," + temp.y.ToString() + "," + temp.z.ToString());
+                recordFlagTime = Time.time;
+                recordFlagPos = temp;
+            }
+        }
 
+        if (isReplaying)
+        {
+            //ReadPos ();
+            if (Time.time - currentTime < totalTime)
+            {
+                transform.position = new Vector3(animX.Evaluate(Time.time - currentTime),
+                    animY.Evaluate(Time.time - currentTime), animZ.Evaluate(Time.time - currentTime));
+            }
+        }
 
-	public void makeCurve()
-	{
-		FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read);
-		StreamReader read = new StreamReader(fs, Encoding.Default);     
-		string strReadline;
+    }
 
-		float frameTime = 0.017f;
-		float sumTime = 0;
+    public void makeCurve()
+    {
+        reader = new StreamReader(path + "\\read.txt");
+        string strReadline;
+        float sumTime = 0;
 
-		Keyframe[] ksX = new Keyframe[10000];
-		Keyframe[] ksY = new Keyframe[10000];
-		Keyframe[] ksZ = new Keyframe[10000];
-		int cnt = 0;
-		float lastX = originX;
-		float lastY = originY;
-		float lastZ = originZ;
+        Keyframe[] ksX = new Keyframe[10000];
+        Keyframe[] ksY = new Keyframe[10000];
+        Keyframe[] ksZ = new Keyframe[10000];
+        int cnt = 0;
+        float lastX = originX;
+        float lastY = originY;
+        float lastZ = originZ;
 
-		while ((strReadline = read.ReadLine()) != null) // strReadline即为按照行读取的字符串
-		{
-			if (cnt % 3 == 0) 	//增大抽样间隔
-			{
-				string[] rec = strReadline.Split (' ');
-				float recX = float.Parse (rec [0]);
-				float recY = float.Parse (rec [1]);
-				float recZ = float.Parse (rec [2]);
+        while ((strReadline = reader.ReadLine()) != null) // strReadline即为按照行读取的字符串
+        {
+            string[] rec = strReadline.Split(',');
+            float deltaTime = float.Parse(rec[0]);
+            float recX = float.Parse(rec[1]);
+            float recY = float.Parse(rec[2]);
+            float recZ = float.Parse(rec[3]);
 
-				ksX [cnt] = new Keyframe (sumTime, recX);
-				ksY [cnt] = new Keyframe (sumTime, recY);
-				ksZ [cnt] = new Keyframe (sumTime, recZ);
+            ksX[cnt] = new Keyframe(sumTime, recX);
+            ksY[cnt] = new Keyframe(sumTime, recY);
+            ksZ[cnt] = new Keyframe(sumTime, recZ);
+            sumTime += deltaTime;
+            cnt++;
+        }
 
-			}
-			sumTime += frameTime;
-			cnt++;
-		}
+        totalTime = sumTime;
 
-		totalTime = sumTime;
+        Debug.Log("cnt = " + cnt);
 
-		Debug.Log ("cnt = " + cnt);
+        animX = new AnimationCurve(ksX);
+        animX.preWrapMode = WrapMode.Loop;
+        animX.postWrapMode = WrapMode.Loop;
 
-		animX = new AnimationCurve(ksX);
-		animX.preWrapMode = WrapMode.Loop;
-		animX.postWrapMode = WrapMode.Loop;
+        animY = new AnimationCurve(ksY);
+        animY.preWrapMode = WrapMode.Loop;
+        animY.postWrapMode = WrapMode.Loop;
 
-		animY = new AnimationCurve(ksY);
-		animY.preWrapMode = WrapMode.Loop;
-		animY.postWrapMode = WrapMode.Loop;
+        animZ = new AnimationCurve(ksZ);
+        animZ.preWrapMode = WrapMode.Loop;
+        animZ.postWrapMode = WrapMode.Loop;
 
-		animZ = new AnimationCurve(ksZ);
-		animZ.preWrapMode = WrapMode.Loop;
-		animZ.postWrapMode = WrapMode.Loop;
+        reader.Close();
+    }
 
-		fs.Close();
-		read.Close();
-	}
+    private void preRead()
+    {
+        int i = startLine;
+        string temp = "";
+        while (i-- > 0)
+        {
+            temp = reader.ReadLine();
+            writer.WriteLine(temp);
+        }
+    }
 
-	public void WritePos(Vector3 pos)
-	{
-		FileStream fs = null;  
-		Encoding encoder = Encoding.UTF8;  //将待写的入数据从字符串转换为字节数组  
-		byte[] bytes = encoder.GetBytes(pos.x.ToString() + " " + pos.y.ToString() + " " + pos.z.ToString() + " \r\n");  
-		try  
-		{  
-			fs = File.OpenWrite(path);  
-			fs.Position = fs.Length;  //设定书写的開始位置为文件的末尾
-			fs.Write(bytes, 0, bytes.Length);  //将待写入内容追加到文件末尾
-		}  
-		catch (Exception ex)  
-		{  
-			Console.WriteLine("文件打开失败{0}", ex.ToString());  
-		}  
-		finally  
-		{  
-			fs.Close();  
-		} 
-	}
-
-	public void ReadPos()
-	{
-		
-		string strReadline = read.ReadLine ();
-
-		if (strReadline == null) {
-			read.Close ();
-			finishedReading = true;
-			return;
-		}
-
-		string[] rec = strReadline.Split(' ');
-		float recX = float.Parse (rec [0]);
-		float recY = float.Parse (rec [1]);
-		float recZ = float.Parse (rec [2]);
-		transform.position = new Vector3 (recX, recY, recZ);
-
-	}
+    private void postRead()
+    {
+        if (endLine == -1)
+            return;
+        int i = endLine > startLine ? endLine - startLine : startLine;
+        string temp = "";
+        while (i-- > 0)
+        {
+            reader.ReadLine();
+        }
+        while ((temp = reader.ReadLine()) != null)
+        {
+            writer.WriteLine(temp);
+        }
+    }
 }
-
-
-
